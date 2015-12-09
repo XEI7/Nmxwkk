@@ -1,0 +1,41 @@
+// 作者：代码疯子
+// 博客：http://www.programlife.net/ （程序人生）
+//00000000:  0C 6E                      OR      AL,6E
+//00000002:  D0E0                       SHL     AL,1
+//00000004:  24 D7                      AND     AL,D7
+//00000006:  D0E8                       SHR     AL,1
+//00000008:  34 2E                      XOR     AL,2E
+
+#include <iostream>
+#include <algorithm>
+using namespace std;
+ 
+char transfun(int s)
+{
+	// 说明：因为char的范围不够，所以这里用了int
+	// 返回时使用什么类型无所谓了，只要接收的是char即可
+	s |= 0x6E;
+	s = s << 1;
+	s &= 0xD7;
+	s = s >> 1;
+	s ^= 0x2E;
+	return s;
+}
+ 
+int main(int argc, char **argv)
+{
+	char s, tmp[26];
+	int i;
+	for (s = 'A'; s <= 'Z'; ++s)
+	{
+		tmp[s - 'A'] = transfun(s);
+	}
+	sort(tmp, tmp + 26);
+	for(i = 0; i < 26; ++i)
+	{
+		putchar(tmp[i]);
+	}
+	putchar('\n');
+ 
+	return 0;
+}
